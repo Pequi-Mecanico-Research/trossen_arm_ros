@@ -17,6 +17,7 @@
   <depend>launch_ros</depend>
   <depend>launch</depend>
   <depend>parallel_gripper_controller</depend>
+  <depend>realsense2_camera</depend>
   <depend>trossen_arm_description</depend>
   <depend>trossen_arm_hardware</depend>
   <depend>xacro</depend>

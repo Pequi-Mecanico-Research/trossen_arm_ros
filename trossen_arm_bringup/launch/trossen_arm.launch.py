@@ -33,6 +33,7 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
+from launch.conditions import IfCondition
 from launch.event_handlers import (
     OnProcessStart,
 )
@@ -55,6 +56,24 @@ from launch_ros.substitutions import FindPackageShare
 def launch_setup(context, *args, **kwargs):
     robot_model_launch_arg = LaunchConfiguration('robot_model')
     robot_description_launch_arg = LaunchConfiguration('robot_description')
+
+    # [cameras] block start
+    cameras_launch_include = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('trossen_arm_bringup'),
+                'launch',
+                'cameras.launch.py'
+            ]),
+        ),
+        condition=IfCondition(LaunchConfiguration('enable_cameras')),
+        launch_arguments={
+            'use_sim_time': 'false',
+            'wrist_camera_serial_no': LaunchConfiguration('wrist_camera_serial_no'),
+            'env_camera_serial_no': LaunchConfiguration('env_camera_serial_no'),
+        }.items(),
+    )
+    # [cameras] block end
 
     ros2_control_controllers_config_parameter_file = ParameterFile(
         param_file=PathJoinSubstitution([
@@ -114,6 +133,7 @@ def launch_setup(context, *args, **kwargs):
     return [
         controller_manager_node,
         description_launch_include,
+        cameras_launch_include,
         RegisterEventHandler(
             OnProcessStart(
                 target_action=controller_manager_node,
@@ -183,6 +203,30 @@ def generate_launch_description() -> LaunchDescription:
             description='Use rviz.'
         )
     )
+    # [cameras] block start: declared arguments below
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'enable_cameras',
+            default_value='true',
+            choices=('true', 'false'),
+            description='Add the wrist + environment D435i cameras and bring up their drivers.',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'wrist_camera_serial_no',
+            default_value='243322072096',
+            description='Serial number of the wrist-mounted D435i. Required on real hardware.',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'env_camera_serial_no',
+            default_value='944122073060',
+            description='Serial number of the environment D435i. Required on real hardware.',
+        )
+    )
+    # [cameras] block end
     declared_arguments.append(
         DeclareLaunchArgument(
             'robot_description',
@@ -198,7 +242,8 @@ def generate_launch_description() -> LaunchDescription:
                 'arm_side:=', LaunchConfiguration('arm_side'), ' ',
                 'ros2_control_hardware_type:=', LaunchConfiguration('ros2_control_hardware_type'),
                 ' ',
-                'ip_address:=', LaunchConfiguration('ip_address'),
+                'ip_address:=', LaunchConfiguration('ip_address'), ' ',
+                'enable_cameras:=', LaunchConfiguration('enable_cameras'),
             ])
         )
     )

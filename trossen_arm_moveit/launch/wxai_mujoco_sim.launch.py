@@ -1,8 +1,14 @@
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, RegisterEventHandler
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+    RegisterEventHandler,
+)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessStart
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -25,7 +31,8 @@ def launch_setup(context, *args, **kwargs):
                 'wxai_mujoco.urdf.xacro', # Certifique-se que o nome do arquivo bate com o seu URDF
             ]).perform(context),
             mappings={
-                'ros2_control_hardware_type': 'mujoco'
+                'ros2_control_hardware_type': 'mujoco',
+                'enable_cameras': LaunchConfiguration('enable_cameras').perform(context),
             }
         )
         .robot_description_semantic(file_path='config/wxai.srdf.xacro')
@@ -112,11 +119,26 @@ def launch_setup(context, *args, **kwargs):
             )
         )
 
+    # [cameras] block start
+    cameras_launch_include = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('trossen_arm_bringup'),
+                'launch',
+                'cameras.launch.py'
+            ]),
+        ),
+        condition=IfCondition(LaunchConfiguration('enable_cameras')),
+        launch_arguments={'use_sim_time': use_sim_time}.items(),
+    )
+    # [cameras] block end
+
     return [
         robot_state_publisher_node,
         mujoco_control_node,
         move_group_node,
         rviz_node,
+        cameras_launch_include,
         # O RegisterEventHandler substitui os TimerActions para garantir que
         # os spawners só rodem DEPOIS que o MuJoCo estiver de fato rodando
         RegisterEventHandler(
@@ -131,5 +153,11 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_rviz', default_value='true', description='Abrir RViz'),
         DeclareLaunchArgument('use_sim_time', default_value='true', description='Usar relógio da simulação MuJoCo'),
+        # [cameras]
+        DeclareLaunchArgument(
+            'enable_cameras',
+            default_value='true',
+            description='Adiciona as câmeras D435i (pulso + ambiente) ao robot_description',
+        ),
         OpaqueFunction(function=launch_setup)
     ])

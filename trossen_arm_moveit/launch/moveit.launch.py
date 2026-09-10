@@ -29,6 +29,7 @@
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    IncludeLaunchDescription,  # [cameras]
     OpaqueFunction,
     RegisterEventHandler,
 )
@@ -36,6 +37,7 @@ from launch.conditions import IfCondition
 from launch.event_handlers import (
     OnProcessStart,
 )
+from launch.launch_description_sources import PythonLaunchDescriptionSource  # [cameras]
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
@@ -64,6 +66,7 @@ def launch_setup(context, *args, **kwargs):
                 'variant': LaunchConfiguration('arm_variant'),
                 'ip_address': LaunchConfiguration('ip_address'),
                 'ros2_control_hardware_type': LaunchConfiguration('ros2_control_hardware_type'),
+                'enable_cameras': LaunchConfiguration('enable_cameras'),  # [cameras]
             }
         )
         .robot_description_semantic(
@@ -99,6 +102,24 @@ def launch_setup(context, *args, **kwargs):
         )
         .to_moveit_configs()
     )
+
+    # [cameras] block start
+    cameras_launch_include = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('trossen_arm_bringup'),
+                'launch',
+                'cameras.launch.py'
+            ]),
+        ),
+        condition=IfCondition(LaunchConfiguration('enable_cameras')),
+        launch_arguments={
+            'use_sim_time': 'false',
+            'wrist_camera_serial_no': LaunchConfiguration('wrist_camera_serial_no'),
+            'env_camera_serial_no': LaunchConfiguration('env_camera_serial_no'),
+        }.items(),
+    )
+    # [cameras] block end
 
     move_group_node = Node(
         package='moveit_ros_move_group',
@@ -177,6 +198,7 @@ def launch_setup(context, *args, **kwargs):
         moveit_rviz_node,
         controller_manager_node,
         robot_state_publisher_node,
+        cameras_launch_include,  # [cameras]
         RegisterEventHandler(
             OnProcessStart(
                 target_action=controller_manager_node,
@@ -227,6 +249,30 @@ def generate_launch_description():
             description="Launches RViz with MoveIt's RViz configuration.",
         )
     )
+    # [cameras] block start: declared arguments below
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'enable_cameras',
+            default_value='true',
+            choices=('true', 'false'),
+            description='Add the wrist + environment D435i cameras and bring up their drivers.',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'wrist_camera_serial_no',
+            default_value='243322072096',
+            description='Serial number of the wrist-mounted D435i. Required on real hardware.',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'env_camera_serial_no',
+            default_value='944122073060',
+            description='Serial number of the environment D435i. Required on real hardware.',
+        )
+    )
+    # [cameras] block end
     declared_arguments.append(
         DeclareLaunchArgument(
             'rviz_config_file',

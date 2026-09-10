@@ -30,6 +30,7 @@
   <exec_depend>rviz_default_plugins</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>trossen_arm_bringup</exec_depend>
   <exec_depend>trossen_arm_description</exec_depend>
   <exec_depend>trossen_arm_hardware</exec_depend>
   <exec_depend>xacro</exec_depend>
