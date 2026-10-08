@@ -253,7 +253,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             'enable_cameras',
-            default_value='true',
+            default_value='false',
             choices=('true', 'false'),
             description='Add the wrist + environment D435i cameras and bring up their drivers.',
         )
