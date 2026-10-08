@@ -42,6 +42,17 @@ the driver's default.)
 align_depth is forced on for the real driver so its depth topic/frame lines
 up with MuJoCo's single-viewpoint RGB-D output (real D435i color and depth
 sensors have a small physical baseline that sim doesn't model).
+
+Neither source publishes a compressed color stream on its own: MuJoCo's
+camera sensor writes plain sensor_msgs/Image, and this repo's `ros2 topic
+list` dumps while bringing up the real cameras never showed a `.../
+compressed` topic either, so realsense2_camera_node isn't advertising one
+here (no ros-jazzy-compressed-image-transport, or its Image publishers
+aren't image_transport-wrapped). This file adds explicit image_transport
+`republish` nodes (raw -> compressed) for both color streams so `.../color/
+image_raw/compressed` exists identically in sim and on real hardware --
+useful for bandwidth-constrained viewers like rqt_image_view over a
+network or foxglove.
 """
 
 from launch import LaunchDescription
@@ -111,7 +122,30 @@ def generate_launch_description():
             output='screen',
         )
 
+    def compressed_republish_node(camera_name):
+        raw_topic = f'/camera/{camera_name}/color/image_raw'
+        return Node(
+            package='image_transport',
+            executable='republish',
+            name=f'{camera_name}_color_compressed_republisher',
+            # image_transport's republish node reads the transport pair from the
+            # in_transport/out_transport parameters, not from argv -- passing them as
+            # `arguments=['raw', 'compressed']` is silently ignored (out_transport stays
+            # empty, so it never advertises a compressed publisher).
+            parameters=[{
+                'in_transport': 'raw',
+                'out_transport': 'compressed',
+            }],
+            remappings=[
+                ('in', raw_topic),
+                ('out/compressed', f'{raw_topic}/compressed'),
+            ],
+            output='screen',
+        )
+
     return LaunchDescription(declared_arguments + [
         realsense_node('wrist_camera', wrist_camera_serial_no),
         realsense_node('env_camera', env_camera_serial_no),
+        compressed_republish_node('wrist_camera'),
+        compressed_republish_node('env_camera'),
     ])
