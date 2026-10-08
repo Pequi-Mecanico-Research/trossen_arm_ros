@@ -10,6 +10,10 @@ def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration('use_sim_time')
     hardware_type = LaunchConfiguration('hardware_type').perform(context)
 
+    # Com relógio de simulação, força o hardware MuJoCo
+    if use_sim_time.perform(context).lower() == 'true':
+        hardware_type = 'mujoco'
+
     moveit_configs = (
         MoveItConfigsBuilder(
             robot_name='wxai',
