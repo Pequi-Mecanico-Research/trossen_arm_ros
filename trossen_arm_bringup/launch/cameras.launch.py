@@ -118,6 +118,12 @@ def generate_launch_description():
                 # Nothing in this stack consumes IMU data (see rs_d435i.urdf.xacro).
                 'enable_gyro': False,
                 'enable_accel': False,
+                # Without global time, frames are stamped in the HARDWARE_CLOCK domain: ROS time
+                # at the first frame plus elapsed camera-clock time, which drifts from the host
+                # clock and jumps when the camera counter wraps. Global time keeps stamps on the
+                # host clock so images stay in sync with joint_states and with each other.
+                'depth_module.global_time_enabled': True,
+                'rgb_camera.global_time_enabled': True,
             }],
             output='screen',
         )
