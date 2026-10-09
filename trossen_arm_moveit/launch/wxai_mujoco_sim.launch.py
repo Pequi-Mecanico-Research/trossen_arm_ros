@@ -62,14 +62,25 @@ def launch_setup(context, *args, **kwargs):
         'ros2_controllers.yaml'
     ])
 
+    mujoco_control_params = [
+        moveit_configs.robot_description,
+        ros2_controllers_filepath,
+        {'use_sim_time': use_sim_time},
+    ]
+    # [cameras] block start
+    # CameraPlugin só é carregado com câmeras habilitadas; sem ele nenhuma imagem é renderizada.
+    if LaunchConfiguration('enable_cameras').perform(context).lower() == 'true':
+        mujoco_control_params.append(PathJoinSubstitution([
+            FindPackageShare('trossen_arm_moveit'),
+            'config',
+            'mujoco_plugins.yaml'
+        ]))
+    # [cameras] block end
+
     mujoco_control_node = Node(
         package='mujoco_ros2_control',
         executable='ros2_control_node',
-        parameters=[
-            moveit_configs.robot_description,
-            ros2_controllers_filepath,
-            {'use_sim_time': use_sim_time},
-        ],
+        parameters=mujoco_control_params,
         output='screen',
     )
 

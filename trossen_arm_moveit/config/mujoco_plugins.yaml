@@ -1,0 +1,21 @@
+# mujoco_ros2_control plugins, loaded by wxai_mujoco_sim.launch.py when enable_cameras:=true.
+/**:
+  ros__parameters:
+    mujoco_plugins:
+      mujoco_camera_plugin:
+        type: "mujoco_ros2_control_plugins/CameraPlugin"
+        # Matches the color/depth rate configured on the real D435i driver in cameras.launch.py.
+        camera_publish_rate: 30.0
+        # Keys are MJCF camera names (wxai_ros2_control.xml). Topics prefixed with /camera/ to
+        # match the real realsense2_camera_node: with two cameras it falls back to that shared
+        # prefix regardless of camera_namespace, so sim and real agree on /camera/<name>/...
+        wrist_camera:
+          frame_name: wrist_camera_color_optical_frame
+          info_topic: /camera/wrist_camera/color/camera_info
+          image_topic: /camera/wrist_camera/color/image_raw
+          depth_topic: /camera/wrist_camera/aligned_depth_to_color/image_raw
+        env_camera:
+          frame_name: env_camera_color_optical_frame
+          info_topic: /camera/env_camera/color/camera_info
+          image_topic: /camera/env_camera/color/image_raw
+          depth_topic: /camera/env_camera/aligned_depth_to_color/image_raw
